@@ -33,7 +33,7 @@ public struct SFSymbolMacro: DeclarationMacro {
         }
         let decl: DeclSyntax = """
 enum SFSymbol: String {
-    \(raw: names.map(\.caseExprssion).joined(separator: "\n    "))
+    \(raw: names.map(caseExpression(name:)).joined(separator: "\n    "))
 
     var name: String { self.rawValue }
 
@@ -74,6 +74,26 @@ enum SFSymbol: String {
 """
         return [decl]
     }
+
+    private static func caseExpression(name: String) -> String {
+        let camel = name.camelCased()
+        return if name == camel {
+            keywords.contains(name) ? "case `\(name)`" : "case \(name)"
+        } else {
+            "case \(camel) = \"\(name)\""
+        }
+    }
+
+    private static let keywords = Set([
+        "Any", "Protocol", "Self", "Type", "any", "as", "associatedtype", "associativity", "await", "break", "case",
+        "catch", "catch", "class", "continue", "convenience", "default", "defer", "deinit", "didSet", "do", "dynamic",
+        "else", "enum", "extension", "fallthrough", "false", "fileprivate", "final", "for", "func", "get", "guard",
+        "if", "import", "in", "indirect", "infix", "init", "inout", "internal", "is", "lazy", "left", "let", "mutating",
+        "nil", "none", "nonmutating", "open", "operator", "optional", "override", "postfix", "precedence",
+        "precedencegroup", "prefix", "private", "protocol", "public", "repeat", "required", "rethrows", "rethrows",
+        "return", "right", "self", "set", "some", "static", "struct", "subscript", "super", "switch", "throw", "throw",
+        "throws", "true", "try", "typealias", "unowned", "var", "weak", "where", "while", "willSet"
+    ])
 }
 
 extension ArrayElementSyntax {
@@ -107,15 +127,6 @@ extension String {
             } else {
                 $0.append($1)
             }
-        }
-    }
-
-    fileprivate var caseExprssion: String {
-        let camel = camelCased()
-        return if self == camel {
-            "case \(self)"
-        } else {
-            "case \(camel) = \"\(self)\""
         }
     }
 }

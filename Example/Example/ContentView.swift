@@ -3,6 +3,7 @@ import SwiftUI
 
 #SFSymbol(names: [
     "star",
+    "case",
     "star.fill",
     "star.square.on.square",
 ])
@@ -13,6 +14,7 @@ struct ContentView: View {
             SFSymbol.star.image()
             SFSymbol.starFill.image()
             SFSymbol.starSquareOnSquare.image()
+            SFSymbol.case.image()
         }
         .padding(100)
     }
