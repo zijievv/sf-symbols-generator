@@ -1,5 +1,11 @@
 # SF Symbols Generator
 
+- [Usage](#usage)
+  - [Type-Safe](#type-safe)
+- [Installation](#installation)
+  - [Swift Package Manager (SPM)](#swift-package-manager-(spm))
+  - [Xcode](#xcode)
+
 A Swift macro generating type-safe SF Symbols
 
 ## Usage
