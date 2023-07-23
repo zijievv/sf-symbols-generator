@@ -83,7 +83,7 @@ Checks validity
 
 ---
 
-<img width="689" alt="Redundant" src="https://github.com/zijievv/sf-symbols-generator/assets/48703581/c339c73b-e33a-491c-954b-b363d499ed9a">
+<img width="534" alt="Screenshot 2023-07-23 at 13 26 20" src="https://github.com/zijievv/sf-symbols-generator/assets/48703581/f26dec82-b1d7-479d-8592-7b7dcdec9936">
 
 ## Installation
 
