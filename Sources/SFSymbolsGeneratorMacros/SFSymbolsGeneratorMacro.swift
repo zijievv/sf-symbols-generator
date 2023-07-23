@@ -10,11 +10,15 @@ public struct SFSymbolMacro: DeclarationMacro {
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard let first = node.argumentList.first else { return [] }
-        guard let elements = first.expression.as(ArrayExprSyntax.self)?.elements.as(ArrayElementListSyntax.self) else {
+        guard
+            let elements = node
+                .argumentList.first?.expression.as(ArrayExprSyntax.self)?
+                .elements.as(ArrayElementListSyntax.self)
+        else {
             return []
         }
         guard !elements.isEmpty else { throw DiagnosticsError(node: Syntax(elements), message: .emptyNames) }
+        var visitedNames: Set<String> = []
         let names = try elements.map {
             guard let name = $0.contentText() else {
                 throw DiagnosticsError(node: Syntax($0), message: .cannotParseNames)
@@ -22,14 +26,10 @@ public struct SFSymbolMacro: DeclarationMacro {
             guard name.isValidSFSymbolName else {
                 throw DiagnosticsError(node: Syntax($0), message: .invalidSFSymbolName(name))
             }
+            guard visitedNames.insert(name).inserted else {
+                throw DiagnosticsError(node: Syntax($0), message: .redundantName(name))
+            }
             return name
-        }
-        let redundantNames = Dictionary(grouping: names, by: { $0 })
-            .mapValues(\.count)
-            .filter { $0.value > 1 }
-            .map(\.key)
-        guard redundantNames.isEmpty else {
-            throw DiagnosticsError(node: Syntax(node), message: .redundantNames(redundantNames))
         }
         let decl: DeclSyntax = """
 enum SFSymbol: String {
@@ -92,7 +92,7 @@ enum SFSymbol: String {
         "nil", "none", "nonmutating", "open", "operator", "optional", "override", "postfix", "precedence",
         "precedencegroup", "prefix", "private", "protocol", "public", "repeat", "required", "rethrows", "rethrows",
         "return", "right", "self", "set", "some", "static", "struct", "subscript", "super", "switch", "throw", "throw",
-        "throws", "true", "try", "typealias", "unowned", "var", "weak", "where", "while", "willSet"
+        "throws", "true", "try", "typealias", "unowned", "var", "weak", "where", "while", "willSet",
     ])
 }
 
@@ -135,7 +135,7 @@ enum SFSymbolMacroDiagnostic: DiagnosticMessage {
     case emptyNames
     case cannotParseNames
     case invalidSFSymbolName(String)
-    case redundantNames([String])
+    case redundantName(String)
 
     var severity: DiagnosticSeverity { .error }
 
@@ -147,8 +147,8 @@ enum SFSymbolMacroDiagnostic: DiagnosticMessage {
             "Cannot parse SF Symbol names"
         case .invalidSFSymbolName(let name):
             "`\(name)` is not a valid SF Symbol name"
-        case .redundantNames(let names):
-            "Redundant SF Symbol name(s): \(names.map { "`\($0)`" }.joined(separator: ", "))"
+        case .redundantName(let name):
+            "Redundant SF Symbol name: `\(name)`"
         }
     }
 
