@@ -128,7 +128,7 @@ extension ArrayElementSyntax {
         expression
             .as(StringLiteralExprSyntax.self)?
             .segments
-            .as(StringLiteralSegmentsSyntax.self)?
+            .as(StringLiteralSegmentListSyntax.self)?
             .first?
             .as(StringSegmentSyntax.self)?
             .content

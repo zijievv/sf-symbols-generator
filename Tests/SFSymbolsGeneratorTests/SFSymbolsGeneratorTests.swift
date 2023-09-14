@@ -50,7 +50,7 @@ enum SFSymbol: String {
         Image(systemName: self.rawValue, variableValue: variableValue)
     }
 
-    #if canImport(UIKit)
+    #if canImport (UIKit)
     @available(iOS 13.0, *)
     @available(macCatalyst 13.0, *)
     @available(tvOS 13.0, *)
