@@ -1,5 +1,6 @@
 # SF Symbols Generator
 
+- [Declaration](#declaration)
 - [Usage](#usage)
   - [Type-Safe](#type-safe)
 - [Installation](#installation)
@@ -7,6 +8,19 @@
   - [Xcode](#xcode)
 
 A Swift macro generating type-safe SF Symbols
+
+## Declaration
+
+```swift
+@freestanding(declaration, names: named(SFSymbol)) macro SFSymbol(accessLevel: AccessLevel = .internal, names: [String])
+
+enum AccessLevel {
+    case `private`
+    case `fileprivate`
+    case `internal`
+    case `public`
+}
+```
 
 ## Usage
 
@@ -16,9 +30,10 @@ Source code:
 import SFSymbolsGenerator
 import SwiftUI
 
-#SFSymbol(names: [
+// Default AccessLevel is `.internal`
+#SFSymbol(accessLevel: .public, names: [
     "star",
-    "star.fill",
+    "case",
     "star.square.on.square",
 ])
 ```
@@ -26,45 +41,72 @@ import SwiftUI
 Expanded source:
 
 ```swift
-enum SFSymbol: String {
+public enum SFSymbol: String {
     case star
-    case starFill = "star.fill"
+    case `case`
     case starSquareOnSquare = "star.square.on.square"
 
-    var name: String {
+    public var name: String {
         self.rawValue
     }
 
-    func image() -> Image {
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.0, *)
+    @available(macOS 11.0, *)
+    @available(tvOS 13.0, *)
+    @available(watchOS 6.0, *)
+    public func image() -> Image {
         Image(systemName: self.rawValue)
     }
 
-    func image(variableValue: Double?) -> Image {
+    @available(iOS 16.0, *)
+    @available(macCatalyst 16.0, *)
+    @available(macOS 13.0, *)
+    @available(tvOS 16.0, *)
+    @available(watchOS 9.0, *)
+    public func image(variableValue: Double?) -> Image {
         Image(systemName: self.rawValue, variableValue: variableValue)
     }
 
-    #if canImport(UIKit)
-    func uiImage() -> UIImage {
+    #if canImport (UIKit)
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.0, *)
+    @available(tvOS 13.0, *)
+    @available(watchOS 6.0, *)
+    public func uiImage() -> UIImage {
         UIImage(systemName: self.rawValue)!
     }
 
-    func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.1, *)
+    @available(tvOS 13.0, *)
+    @available(watchOS 6.0, *)
+    public func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
         UIImage(systemName: self.rawValue, withConfiguration: configuration)!
     }
 
-    func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
+    @available(iOS 16.0, *)
+    @available(macCatalyst 16.0, *)
+    @available(tvOS 16.0, *)
+    @available(watchOS 9.0, *)
+    public func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
         UIImage(systemName: self.rawValue, variableValue: variableValue, configuration: configuration)!
     }
 
-    func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.1, *)
+    @available(tvOS 13.0, *)
+    public func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
         UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
     }
     #else
-    func nsImage(accessibilityDescription description: String) -> NSImage {
+    @available(macOS 11.0, *)
+    public func nsImage(accessibilityDescription description: String) -> NSImage {
         NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
     }
 
-    func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
+    @available(macOS 13.0, *)
+    public func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
         NSImage(systemSymbolName: self.rawValue, variableValue: value, accessibilityDescription: description)!
     }
     #endif
@@ -73,7 +115,7 @@ enum SFSymbol: String {
 
 ### Type-Safe
 
-Checks validity
+Checks validity:
 
 <img width="661" alt="Valid" src="https://github.com/zijievv/sf-symbols-generator/assets/48703581/33b8d7de-6694-4cfe-bb3e-041c1887e515">
 
@@ -92,7 +134,7 @@ Checks validity
 Add the following line to the dependencies in `Package.swift`, to use the `SFSymbol` macro in a SPM project:
 
 ```swift
-.package(url: "https://github.com/zijievv/sf-symbols-generator", from: "0.1.0"),
+.package(url: "https://github.com/zijievv/sf-symbols-generator", from: "1.1.0"),
 ```
 
 In your target:
