@@ -1,3 +1,4 @@
+import SFSymbolsGenerator
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
@@ -22,16 +23,33 @@ final class SFSymbolsGeneratorTests: XCTestCase {
 
     func testMacro() {
         #if canImport(SFSymbolsGeneratorMacros)
-        let source = """
-            #SFSymbol(names: \(arrayExprStr()))
-            """
-        let expected = """
-            enum SFSymbol: String {
+        assertMacro("private")
+        assertMacro("fileprivate")
+        assertMacro("internal")
+        assertMacro("public")
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func assertMacro(_ accessLevel: String) {
+        assertMacroExpansion(source(accessLevel), expandedSource: expected(accessLevel), macros: testMacros)
+    }
+
+    func source(_ accessLevel: String) -> String {
+        "#SFSymbol(accessLevel: .\(accessLevel), names: \(arrayExprStr()))"
+    }
+
+    func expected(_ accessLevel: String) -> String {
+        let enumAccess: String = accessLevel == "internal" ? "" : "\(accessLevel) "
+        let propertyAccess: String = accessLevel == "public" ? "\(accessLevel) " : ""
+        return """
+            \(enumAccess)enum SFSymbol: String {
                 case star
                 case starFill = "star.fill"
                 case starSquareOnSquare = "star.square.on.square"
 
-                var name: String {
+                \(propertyAccess)var name: String {
                     self.rawValue
                 }
 
@@ -40,7 +58,7 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 @available(macOS 11.0, *)
                 @available(tvOS 13.0, *)
                 @available(watchOS 6.0, *)
-                func image() -> Image {
+                \(propertyAccess)func image() -> Image {
                     Image(systemName: self.rawValue)
                 }
 
@@ -49,7 +67,7 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 @available(macOS 13.0, *)
                 @available(tvOS 16.0, *)
                 @available(watchOS 9.0, *)
-                func image(variableValue: Double?) -> Image {
+                \(propertyAccess)func image(variableValue: Double?) -> Image {
                     Image(systemName: self.rawValue, variableValue: variableValue)
                 }
 
@@ -58,7 +76,7 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 @available(macCatalyst 13.0, *)
                 @available(tvOS 13.0, *)
                 @available(watchOS 6.0, *)
-                func uiImage() -> UIImage {
+                \(propertyAccess)func uiImage() -> UIImage {
                     UIImage(systemName: self.rawValue)!
                 }
 
@@ -66,7 +84,7 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 @available(macCatalyst 13.1, *)
                 @available(tvOS 13.0, *)
                 @available(watchOS 6.0, *)
-                func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
+                \(propertyAccess)func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
                     UIImage(systemName: self.rawValue, withConfiguration: configuration)!
                 }
 
@@ -74,32 +92,28 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 @available(macCatalyst 16.0, *)
                 @available(tvOS 16.0, *)
                 @available(watchOS 9.0, *)
-                func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
+                \(propertyAccess)func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
                     UIImage(systemName: self.rawValue, variableValue: variableValue, configuration: configuration)!
                 }
 
                 @available(iOS 13.0, *)
                 @available(macCatalyst 13.1, *)
                 @available(tvOS 13.0, *)
-                func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
+                \(propertyAccess)func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
                     UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
                 }
                 #else
                 @available(macOS 11.0, *)
-                func nsImage(accessibilityDescription description: String) -> NSImage {
+                \(propertyAccess)func nsImage(accessibilityDescription description: String) -> NSImage {
                     NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
                 }
 
                 @available(macOS 13.0, *)
-                func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
+                \(propertyAccess)func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
                     NSImage(systemSymbolName: self.rawValue, variableValue: value, accessibilityDescription: description)!
                 }
                 #endif
             }
             """
-        assertMacroExpansion(source, expandedSource: expected, macros: testMacros)
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
     }
 }

@@ -10,16 +10,108 @@ public struct SFSymbolMacro: DeclarationMacro {
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard
-            let elements = node
-                .argumentList.first?.expression.as(ArrayExprSyntax.self)?
-                .elements.as(ArrayElementListSyntax.self)
-        else {
+        let accessLevel: String
+        let names: [String]
+        switch node.argumentList.count {
+        case 1:
+            accessLevel = internalAccess
+            names = try sfSymbolNames(from: node.argumentList.first)
+        case 2:
+            accessLevel = try accessControl(from: node.argumentList.first)
+            names = try sfSymbolNames(from: node.argumentList.last)
+        default: return []
+        }
+        let enumAccess = accessLevel == internalAccess ? "" : "\(accessLevel) "
+        let propertyAccess = accessLevel == publicAccess ? "\(publicAccess) " : ""
+        let decl: DeclSyntax = """
+            \(raw: enumAccess)enum SFSymbol: String {
+                \(raw: names.map(caseExpression(name:)).joined(separator: "\n    "))
+
+                \(raw: propertyAccess)var name: String { self.rawValue }
+
+                @available(iOS 13.0, *)
+                @available(macCatalyst 13.0, *)
+                @available(macOS 11.0, *)
+                @available(tvOS 13.0, *)
+                @available(watchOS 6.0, *)
+                \(raw: propertyAccess)func image() -> Image {
+                    Image(systemName: self.rawValue)
+                }
+
+                @available(iOS 16.0, *)
+                @available(macCatalyst 16.0, *)
+                @available(macOS 13.0, *)
+                @available(tvOS 16.0, *)
+                @available(watchOS 9.0, *)
+                \(raw: propertyAccess)func image(variableValue: Double?) -> Image {
+                    Image(systemName: self.rawValue, variableValue: variableValue)
+                }
+
+                #if canImport(UIKit)
+                @available(iOS 13.0, *)
+                @available(macCatalyst 13.0, *)
+                @available(tvOS 13.0, *)
+                @available(watchOS 6.0, *)
+                \(raw: propertyAccess)func uiImage() -> UIImage {
+                    UIImage(systemName: self.rawValue)!
+                }
+
+                @available(iOS 13.0, *)
+                @available(macCatalyst 13.1, *)
+                @available(tvOS 13.0, *)
+                @available(watchOS 6.0, *)
+                \(raw: propertyAccess)func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
+                    UIImage(systemName: self.rawValue, withConfiguration: configuration)!
+                }
+
+                @available(iOS 16.0, *)
+                @available(macCatalyst 16.0, *)
+                @available(tvOS 16.0, *)
+                @available(watchOS 9.0, *)
+                \(raw: propertyAccess)func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
+                    UIImage(systemName: self.rawValue, variableValue: variableValue, configuration: configuration)!
+                }
+
+                @available(iOS 13.0, *)
+                @available(macCatalyst 13.1, *)
+                @available(tvOS 13.0, *)
+                \(raw: propertyAccess)func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
+                    UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
+                }
+                #else
+                @available(macOS 11.0, *)
+                \(raw: propertyAccess)func nsImage(accessibilityDescription description: String) -> NSImage {
+                    NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
+                }
+
+                @available(macOS 13.0, *)
+                \(raw: propertyAccess)func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
+                    NSImage(systemSymbolName: self.rawValue, variableValue: value, accessibilityDescription: description)!
+                }
+                #endif
+            }
+            """
+        return [decl]
+    }
+
+    private static func accessControl(from arg: LabeledExprListSyntax.Element?) throws -> String {
+        guard let accessLevel = arg?.expression.as(MemberAccessExprSyntax.self)?.declName.baseName.text else {
+            if let arg {
+                throw DiagnosticsError(node: Syntax(arg), message: .cannotParseAccessLevel)
+            } else {
+                return ""
+            }
+        }
+        return accessLevel
+    }
+
+    private static func sfSymbolNames(from arg: LabeledExprListSyntax.Element?) throws -> [String] {
+        guard let elements = arg?.expression.as(ArrayExprSyntax.self)?.elements.as(ArrayElementListSyntax.self) else {
             return []
         }
         guard !elements.isEmpty else { throw DiagnosticsError(node: Syntax(elements), message: .emptyNames) }
         var visitedNames: Set<String> = []
-        let names = try elements.map {
+        return try elements.map {
             guard let name = $0.contentText() else {
                 throw DiagnosticsError(node: Syntax($0), message: .cannotParseNames)
             }
@@ -31,75 +123,6 @@ public struct SFSymbolMacro: DeclarationMacro {
             }
             return name
         }
-        let decl: DeclSyntax = """
-            enum SFSymbol: String {
-                \(raw: names.map(caseExpression(name:)).joined(separator: "\n    "))
-
-                var name: String { self.rawValue }
-
-                @available(iOS 13.0, *)
-                @available(macCatalyst 13.0, *)
-                @available(macOS 11.0, *)
-                @available(tvOS 13.0, *)
-                @available(watchOS 6.0, *)
-                func image() -> Image {
-                    Image(systemName: self.rawValue)
-                }
-
-                @available(iOS 16.0, *)
-                @available(macCatalyst 16.0, *)
-                @available(macOS 13.0, *)
-                @available(tvOS 16.0, *)
-                @available(watchOS 9.0, *)
-                func image(variableValue: Double?) -> Image {
-                    Image(systemName: self.rawValue, variableValue: variableValue)
-                }
-
-                #if canImport(UIKit)
-                @available(iOS 13.0, *)
-                @available(macCatalyst 13.0, *)
-                @available(tvOS 13.0, *)
-                @available(watchOS 6.0, *)
-                func uiImage() -> UIImage {
-                    UIImage(systemName: self.rawValue)!
-                }
-
-                @available(iOS 13.0, *)
-                @available(macCatalyst 13.1, *)
-                @available(tvOS 13.0, *)
-                @available(watchOS 6.0, *)
-                func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
-                    UIImage(systemName: self.rawValue, withConfiguration: configuration)!
-                }
-
-                @available(iOS 16.0, *)
-                @available(macCatalyst 16.0, *)
-                @available(tvOS 16.0, *)
-                @available(watchOS 9.0, *)
-                func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
-                    UIImage(systemName: self.rawValue, variableValue: variableValue, configuration: configuration)!
-                }
-
-                @available(iOS 13.0, *)
-                @available(macCatalyst 13.1, *)
-                @available(tvOS 13.0, *)
-                func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
-                    UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
-                }
-                #else
-                @available(macOS 11.0, *)
-                func nsImage(accessibilityDescription description: String) -> NSImage {
-                    NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
-                }
-
-                @available(macOS 13.0, *)
-                func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
-                    NSImage(systemSymbolName: self.rawValue, variableValue: value, accessibilityDescription: description)!
-                }
-                #endif
-            }
-            """
-        return [decl]
     }
 
     private static func caseExpression(name: String) -> String {
@@ -111,7 +134,9 @@ public struct SFSymbolMacro: DeclarationMacro {
         }
     }
 
-    private static let keywords = Set([
+    private static let internalAccess: String = "internal"
+    private static let publicAccess: String = "public"
+    private static let keywords: Set<String> = [
         "Any", "Protocol", "Self", "Type", "any", "as", "associatedtype", "associativity", "await", "break", "case",
         "catch", "catch", "class", "continue", "convenience", "default", "defer", "deinit", "didSet", "do", "dynamic",
         "else", "enum", "extension", "fallthrough", "false", "fileprivate", "final", "for", "func", "get", "guard",
@@ -120,7 +145,7 @@ public struct SFSymbolMacro: DeclarationMacro {
         "precedencegroup", "prefix", "private", "protocol", "public", "repeat", "required", "rethrows", "rethrows",
         "return", "right", "self", "set", "some", "static", "struct", "subscript", "super", "switch", "throw", "throw",
         "throws", "true", "try", "typealias", "unowned", "var", "weak", "where", "while", "willSet",
-    ])
+    ]
 }
 
 extension ArrayElementSyntax {
@@ -163,6 +188,7 @@ enum SFSymbolMacroDiagnostic: DiagnosticMessage {
     case cannotParseNames
     case invalidSFSymbolName(String)
     case redundantName(String)
+    case cannotParseAccessLevel
 
     var severity: DiagnosticSeverity { .error }
 
@@ -175,7 +201,9 @@ enum SFSymbolMacroDiagnostic: DiagnosticMessage {
         case .invalidSFSymbolName(let name):
             "`\(name)` is not a valid SF Symbol name"
         case .redundantName(let name):
-            "Redundant SF Symbol name: `\(name)`"
+            "Redundant SF Symbol name: '\(name)'"
+        case .cannotParseAccessLevel:
+            "Cannot parse access level"
         }
     }
 
