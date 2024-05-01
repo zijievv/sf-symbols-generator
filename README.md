@@ -56,7 +56,7 @@ enum SFSymbol: String {
     case `case`
     case starSquareOnSquare = "star.square.on.square"
 
-	  var name: String {
+    var name: String {
         self.rawValue
     }
 
