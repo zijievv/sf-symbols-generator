@@ -13,9 +13,17 @@ public struct SFSymbolMacro: DeclarationMacro {
         let accessLevel: String
         let names: [String]
         switch node.argumentList.count {
-        case 1:
+        case 0:
             accessLevel = internalAccess
-            names = try sfSymbolNames(from: node.argumentList.first)
+            names = try sfSymbolNames(from: node.trailingClosure)
+        case 1:
+            if let trailingClosure = node.trailingClosure {
+                accessLevel = try accessControl(from: node.argumentList.first)
+                names = try sfSymbolNames(from: trailingClosure)
+            } else {
+                accessLevel = internalAccess
+                names = try sfSymbolNames(from: node.argumentList.first)
+            }
         case 2:
             accessLevel = try accessControl(from: node.argumentList.first)
             names = try sfSymbolNames(from: node.argumentList.last)
@@ -47,7 +55,7 @@ public struct SFSymbolMacro: DeclarationMacro {
                     Image(systemName: self.rawValue, variableValue: variableValue)
                 }
 
-                #if canImport(UIKit)
+                #if canImport (UIKit)
                 @available(iOS 13.0, *)
                 @available(macCatalyst 13.0, *)
                 @available(tvOS 13.0, *)
@@ -78,7 +86,7 @@ public struct SFSymbolMacro: DeclarationMacro {
                 \(raw: propertyAccess)func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
                     UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
                 }
-                #else
+                #elseif canImport (AppKit)
                 @available(macOS 11.0, *)
                 \(raw: propertyAccess)func nsImage(accessibilityDescription description: String) -> NSImage {
                     NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
@@ -106,12 +114,37 @@ public struct SFSymbolMacro: DeclarationMacro {
     }
 
     private static func sfSymbolNames(from arg: LabeledExprListSyntax.Element?) throws -> [String] {
-        guard let elements = arg?.expression.as(ArrayExprSyntax.self)?.elements.as(ArrayElementListSyntax.self) else {
-            return []
+        if let arrayExprSyntax = arg?.expression.as(ArrayExprSyntax.self) {
+            try sfSymbolNames(from: arrayExprSyntax)
+        } else if let closureExprSyntax = arg?.expression.as(ClosureExprSyntax.self) {
+            try sfSymbolNames(from: closureExprSyntax)
+        } else {
+            []
         }
+    }
+
+    private static func sfSymbolNames(from arrayExprSyntax: ArrayExprSyntax) throws -> [String] {
+        guard let elements = arrayExprSyntax.elements.as(ArrayElementListSyntax.self) else { return [] }
         guard !elements.isEmpty else { throw DiagnosticsError(node: Syntax(elements), message: .emptyNames) }
         var visitedNames: Set<String> = []
         return try elements.map {
+            guard let name = $0.contentText() else {
+                throw DiagnosticsError(node: Syntax($0), message: .cannotParseNames)
+            }
+            guard name.isValidSFSymbolName else {
+                throw DiagnosticsError(node: Syntax($0), message: .invalidSFSymbolName(name))
+            }
+            guard visitedNames.insert(name).inserted else {
+                throw DiagnosticsError(node: Syntax($0), message: .redundantName(name))
+            }
+            return name
+        }
+    }
+
+    private static func sfSymbolNames(from closureExprSyntax: ClosureExprSyntax?) throws -> [String] {
+        guard let closureExprSyntax else { return [] }
+        var visitedNames: Set<String> = []
+        return try closureExprSyntax.statements.map {
             guard let name = $0.contentText() else {
                 throw DiagnosticsError(node: Syntax($0), message: .cannotParseNames)
             }
@@ -154,6 +187,17 @@ extension ArrayElementSyntax {
             .as(StringLiteralExprSyntax.self)?
             .segments
             .as(StringLiteralSegmentListSyntax.self)?
+            .first?
+            .as(StringSegmentSyntax.self)?
+            .content
+            .text
+    }
+}
+
+extension CodeBlockItemSyntax {
+    fileprivate func contentText() -> String? {
+        item.as(StringLiteralExprSyntax.self)?
+            .segments
             .first?
             .as(StringSegmentSyntax.self)?
             .content

@@ -1,4 +1,3 @@
-import SFSymbolsGenerator
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
@@ -12,32 +11,66 @@ let testMacros: [String: Macro.Type] = [
 #endif
 
 final class SFSymbolsGeneratorTests: XCTestCase {
-    let starStr = "star"
-    let starFillStr = "star.fill"
-
-    func arrayExprStr() -> String {
-        """
-        ["\(starStr)", "\(starFillStr)", "star.square.on.square"]
-        """
-    }
-
     func testMacro() {
         #if canImport(SFSymbolsGeneratorMacros)
-        assertMacro("private")
-        assertMacro("fileprivate")
-        assertMacro("internal")
-        assertMacro("public")
+        assertMacroExpansion(
+            """
+            #SFSymbol(accessLevel: .internal, namesBuilder: {
+                "star"
+                "star.fill"
+                "star.square.on.square"
+                "case"
+            })
+            """,
+            expandedSource: expected("internal"),
+            macros: testMacros)
+        assertMacroExpansion(
+            """
+            #SFSymbol(accessLevel: .private) {
+                "star"
+                "star.fill"
+                "star.square.on.square"
+                "case"
+            }
+            """,
+            expandedSource: expected("private"),
+            macros: testMacros)
+        assertMacroExpansion(
+            """
+            #SFSymbol {
+                "star"
+                "star.fill"
+                "star.square.on.square"
+                "case"
+            }
+            """,
+            expandedSource: expected("internal"),
+            macros: testMacros)
+        assertMacroExpansion(
+            """
+            #SFSymbol(accessLevel: .fileprivate, names: [
+                "star",
+                "star.fill",
+                "star.square.on.square",
+                "case"
+            ])
+            """,
+            expandedSource: expected("fileprivate"),
+            macros: testMacros)
+        assertMacroExpansion(
+            """
+            #SFSymbol(names: [
+                "star",
+                "star.fill",
+                "star.square.on.square",
+                "case"
+            ])
+            """,
+            expandedSource: expected("internal"),
+            macros: testMacros)
         #else
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
-    }
-
-    func assertMacro(_ accessLevel: String) {
-        assertMacroExpansion(source(accessLevel), expandedSource: expected(accessLevel), macros: testMacros)
-    }
-
-    func source(_ accessLevel: String) -> String {
-        "#SFSymbol(accessLevel: .\(accessLevel), names: \(arrayExprStr()))"
     }
 
     func expected(_ accessLevel: String) -> String {
@@ -48,6 +81,7 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 case star
                 case starFill = "star.fill"
                 case starSquareOnSquare = "star.square.on.square"
+                case `case`
 
                 \(propertyAccess)var name: String {
                     self.rawValue
@@ -102,7 +136,7 @@ final class SFSymbolsGeneratorTests: XCTestCase {
                 \(propertyAccess)func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
                     UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
                 }
-                #else
+                #elseif canImport (AppKit)
                 @available(macOS 11.0, *)
                 \(propertyAccess)func nsImage(accessibilityDescription description: String) -> NSImage {
                     NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!

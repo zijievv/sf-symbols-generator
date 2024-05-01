@@ -1,11 +1,11 @@
 import SFSymbolsGenerator
 import SwiftUI
 
-#SFSymbol(names: [
-    "star",
-    "case",
-    "star.square.on.square",
-])
+#SFSymbol {
+    "star"
+    "case"
+    "star.square.on.square"
+}
 
 extension Image {
     init(sfSymbol: SFSymbol) {
