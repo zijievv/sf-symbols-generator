@@ -12,19 +12,118 @@ A Swift macro generating type-safe SF Symbols
 ## Declaration
 
 ```swift
-@freestanding(declaration, names: named(SFSymbol)) macro SFSymbol(accessLevel: AccessLevel = .internal, names: [String])
+@freestanding(declaration, names: named(SFSymbol))
+public macro SFSymbol(
+    accessLevel: AccessLevel = .internal,
+    @SFSymbolNamesBuilder namesBuilder: () -> [String])
 
-enum AccessLevel {
-    case `private`
-    case `fileprivate`
-    case `internal`
-    case `public`
-}
+@freestanding(declaration, names: named(SFSymbol)) 
+public macro SFSymbol(accessLevel: AccessLevel = .internal, names: [String])
 ```
 
 ## Usage
 
 Source code:
+
+```swift
+import SFSymbolsGenerator
+import SwiftUI
+
+#SFSymbol {
+    "star"
+    "case"
+    "star.square.on.square"
+}
+
+extension Image {
+    init(symbol: SFSymbol) {
+        self.init(systemName: symbol.name)
+    }
+}
+
+let starImage = Image(symbol: .star)
+// UIKit
+let caseImage: UIImage = SFSymbol.case.uiImage()
+// AppKit
+let img: NSImage = SFSymbol.starSquareOnSquare.nsImage(accessibilityDescription: "")
+```
+
+Expanded source:
+
+```swift
+enum SFSymbol: String {
+    case star
+    case `case`
+    case starSquareOnSquare = "star.square.on.square"
+
+	  var name: String {
+        self.rawValue
+    }
+
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.0, *)
+    @available(macOS 11.0, *)
+    @available(tvOS 13.0, *)
+    @available(watchOS 6.0, *)
+    func image() -> Image {
+        Image(systemName: self.rawValue)
+    }
+
+    @available(iOS 16.0, *)
+    @available(macCatalyst 16.0, *)
+    @available(macOS 13.0, *)
+    @available(tvOS 16.0, *)
+    @available(watchOS 9.0, *)
+	  func image(variableValue: Double?) -> Image {
+        Image(systemName: self.rawValue, variableValue: variableValue)
+    }
+
+    #if canImport (UIKit)
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.0, *)
+    @available(tvOS 13.0, *)
+    @available(watchOS 6.0, *)
+    func uiImage() -> UIImage {
+        UIImage(systemName: self.rawValue)!
+    }
+
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.1, *)
+    @available(tvOS 13.0, *)
+    @available(watchOS 6.0, *)
+	  func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
+        UIImage(systemName: self.rawValue, withConfiguration: configuration)!
+    }
+
+    @available(iOS 16.0, *)
+    @available(macCatalyst 16.0, *)
+    @available(tvOS 16.0, *)
+    @available(watchOS 9.0, *)
+	  func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
+        UIImage(systemName: self.rawValue, variableValue: variableValue, configuration: configuration)!
+    }
+
+    @available(iOS 13.0, *)
+    @available(macCatalyst 13.1, *)
+    @available(tvOS 13.0, *)
+	  func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
+        UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
+    }
+    #elseif canImport (AppKit)
+    @available(macOS 11.0, *)
+	  func nsImage(accessibilityDescription description: String) -> NSImage {
+        NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
+    }
+
+    @available(macOS 13.0, *)
+	  func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
+        NSImage(systemSymbolName: self.rawValue, variableValue: value, accessibilityDescription: description)!
+    }
+    #endif
+}
+```
+
+Or use `Array`:
 
 ```swift
 import SFSymbolsGenerator
@@ -42,74 +141,7 @@ Expanded source:
 
 ```swift
 public enum SFSymbol: String {
-    case star
-    case `case`
-    case starSquareOnSquare = "star.square.on.square"
-
-    public var name: String {
-        self.rawValue
-    }
-
-    @available(iOS 13.0, *)
-    @available(macCatalyst 13.0, *)
-    @available(macOS 11.0, *)
-    @available(tvOS 13.0, *)
-    @available(watchOS 6.0, *)
-    public func image() -> Image {
-        Image(systemName: self.rawValue)
-    }
-
-    @available(iOS 16.0, *)
-    @available(macCatalyst 16.0, *)
-    @available(macOS 13.0, *)
-    @available(tvOS 16.0, *)
-    @available(watchOS 9.0, *)
-    public func image(variableValue: Double?) -> Image {
-        Image(systemName: self.rawValue, variableValue: variableValue)
-    }
-
-    #if canImport (UIKit)
-    @available(iOS 13.0, *)
-    @available(macCatalyst 13.0, *)
-    @available(tvOS 13.0, *)
-    @available(watchOS 6.0, *)
-    public func uiImage() -> UIImage {
-        UIImage(systemName: self.rawValue)!
-    }
-
-    @available(iOS 13.0, *)
-    @available(macCatalyst 13.1, *)
-    @available(tvOS 13.0, *)
-    @available(watchOS 6.0, *)
-    public func uiImage(withConfiguration configuration: UIImage.Configuration?) -> UIImage {
-        UIImage(systemName: self.rawValue, withConfiguration: configuration)!
-    }
-
-    @available(iOS 16.0, *)
-    @available(macCatalyst 16.0, *)
-    @available(tvOS 16.0, *)
-    @available(watchOS 9.0, *)
-    public func uiImage(variableValue: Double, configuration: UIImage.Configuration? = nil) -> UIImage {
-        UIImage(systemName: self.rawValue, variableValue: variableValue, configuration: configuration)!
-    }
-
-    @available(iOS 13.0, *)
-    @available(macCatalyst 13.1, *)
-    @available(tvOS 13.0, *)
-    public func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
-        UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
-    }
-    #else
-    @available(macOS 11.0, *)
-    public func nsImage(accessibilityDescription description: String) -> NSImage {
-        NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
-    }
-
-    @available(macOS 13.0, *)
-    public func nsImage(variableValue value: Double, accessibilityDescription description: String?) -> NSImage {
-        NSImage(systemSymbolName: self.rawValue, variableValue: value, accessibilityDescription: description)!
-    }
-    #endif
+    // ...
 }
 ```
 
@@ -134,7 +166,7 @@ Checks validity:
 Add the following line to the dependencies in `Package.swift`, to use the `SFSymbol` macro in a SPM project:
 
 ```swift
-.package(url: "https://github.com/zijievv/sf-symbols-generator", from: "1.1.0"),
+.package(url: "https://github.com/zijievv/sf-symbols-generator", from: "1.2.0"),
 ```
 
 In your target:
