@@ -6,27 +6,28 @@ import SwiftSyntaxMacros
 import SwiftUI
 
 public struct SFSymbolMacro: DeclarationMacro {
+
     public static func expansion(
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         let accessLevel: String
         let names: [String]
-        switch node.argumentList.count {
+        switch node.arguments.count {
         case 0:
             accessLevel = internalAccess
             names = try sfSymbolNames(from: node.trailingClosure)
         case 1:
             if let trailingClosure = node.trailingClosure {
-                accessLevel = try accessControl(from: node.argumentList.first)
+                accessLevel = try accessControl(from: node.arguments.first)
                 names = try sfSymbolNames(from: trailingClosure)
             } else {
                 accessLevel = internalAccess
-                names = try sfSymbolNames(from: node.argumentList.first)
+                names = try sfSymbolNames(from: node.arguments.first)
             }
         case 2:
-            accessLevel = try accessControl(from: node.argumentList.first)
-            names = try sfSymbolNames(from: node.argumentList.last)
+            accessLevel = try accessControl(from: node.arguments.first)
+            names = try sfSymbolNames(from: node.arguments.last)
         default: return []
         }
         let enumAccess = accessLevel == internalAccess ? "" : "\(accessLevel) "
@@ -86,7 +87,8 @@ public struct SFSymbolMacro: DeclarationMacro {
                 \(raw: propertyAccess)func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
                     UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
                 }
-                #elseif canImport (AppKit)
+                #endif
+                #if canImport (AppKit)
                 @available(macOS 11.0, *)
                 \(raw: propertyAccess)func nsImage(accessibilityDescription description: String) -> NSImage {
                     NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
@@ -124,7 +126,7 @@ public struct SFSymbolMacro: DeclarationMacro {
     }
 
     private static func sfSymbolNames(from arrayExprSyntax: ArrayExprSyntax) throws -> [String] {
-        guard let elements = arrayExprSyntax.elements.as(ArrayElementListSyntax.self) else { return [] }
+        let elements = arrayExprSyntax.elements
         guard !elements.isEmpty else { throw DiagnosticsError(node: Syntax(elements), message: .emptyNames) }
         var visitedNames: Set<String> = []
         return try elements.map {
@@ -186,7 +188,6 @@ extension ArrayElementSyntax {
         expression
             .as(StringLiteralExprSyntax.self)?
             .segments
-            .as(StringLiteralSegmentListSyntax.self)?
             .first?
             .as(StringSegmentSyntax.self)?
             .content
