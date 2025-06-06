@@ -109,7 +109,8 @@ enum SFSymbol: String {
     func uiImage(compatibleWith traitCollection: UITraitCollection?) -> UIImage {
         UIImage(systemName: self.rawValue, compatibleWith: traitCollection)!
     }
-    #elseif canImport (AppKit)
+    #endif
+    #if canImport (AppKit)
     @available(macOS 11.0, *)
     func nsImage(accessibilityDescription description: String) -> NSImage {
         NSImage(systemSymbolName: self.rawValue, accessibilityDescription: description)!
