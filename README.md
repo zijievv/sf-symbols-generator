@@ -33,6 +33,7 @@ import SwiftUI
     "star"
     "case"
     "star.square.on.square"
+    "31.calendar"
 }
 
 extension Image {
@@ -55,6 +56,7 @@ enum SFSymbol: String {
     case star
     case `case`
     case starSquareOnSquare = "star.square.on.square"
+    case sf31Calendar = "31.calendar"
 
     var name: String {
         self.rawValue
@@ -159,6 +161,12 @@ Checks validity:
 ---
 
 <img width="534" alt="Screenshot 2023-07-23 at 13 26 20" src="https://github.com/zijievv/sf-symbols-generator/assets/48703581/f26dec82-b1d7-479d-8592-7b7dcdec9936">
+
+### Naming Rules
+
+- Symbol names are camel-cased by removing dots and uppercasing the next component (`"star.square"` -> `starSquare`).
+- Swift keywords remain accessible using backticks (e.g. ``case``).
+- Names that start with a digit gain an `sf` prefix to remain valid Swift identifiers while still retaining their original SF Symbol raw value (`"31.calendar"` -> `case sf31Calendar = "31.calendar"`).
 
 ## Installation
 

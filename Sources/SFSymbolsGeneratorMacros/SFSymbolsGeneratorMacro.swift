@@ -162,7 +162,12 @@ public struct SFSymbolMacro: DeclarationMacro {
 
     private static func caseExpression(name: String) -> String {
         let camel = name.camelCased()
-        return if name == camel {
+        return if name.first?.isWholeNumber ?? false {
+            // Note: SFSymbol names may begin with a digit (e.g. "31.calendar").
+            // Swift identifiers cannot start with a number, and identifiers starting with '_' or '$' imply internal/unstable usage.
+            // We therefore prefix such cases with "sf" (e.g. sf31Calendar) to produce a stable, user-facing Swift identifier.
+            "case sf\(camel) = \"\(name)\""
+        } else if name == camel {
             keywords.contains(name) ? "case `\(name)`" : "case \(name)"
         } else {
             "case \(camel) = \"\(name)\""

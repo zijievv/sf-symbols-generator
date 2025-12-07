@@ -5,6 +5,7 @@ import SwiftUI
     "star"
     "case"
     "star.square.on.square"
+    "31.calendar"
 }
 
 extension Image {

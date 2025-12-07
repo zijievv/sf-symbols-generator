@@ -5,7 +5,7 @@ import XCTest
 #if canImport(SFSymbolsGeneratorMacros)
 import SFSymbolsGeneratorMacros
 
-let testMacros: [String: Macro.Type] = [
+nonisolated(unsafe) let testMacros: [String: Macro.Type] = [
     "SFSymbol": SFSymbolMacro.self
 ]
 #endif
@@ -73,15 +73,59 @@ final class SFSymbolsGeneratorTests: XCTestCase {
         #endif
     }
 
-    func expected(_ accessLevel: String) -> String {
+    func testDigitPrefixedNamesArePrefixedAndCamelCased() {
+        #if canImport(SFSymbolsGeneratorMacros)
+        assertMacroExpansion(
+            """
+            #SFSymbol {
+                "31.calendar"
+                "00.circle"
+                "2.square.fill"
+            }
+            """,
+            expandedSource: expected("internal", cases: [
+                "case sf31Calendar = \"31.calendar\"",
+                "case sf00Circle = \"00.circle\"",
+                "case sf2SquareFill = \"2.square.fill\""
+            ]),
+            macros: testMacros)
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testDigitPrefixedNamesAlongsideKeywords() {
+        #if canImport(SFSymbolsGeneratorMacros)
+        assertMacroExpansion(
+            """
+            #SFSymbol {
+                "case"
+                "31.calendar"
+            }
+            """,
+            expandedSource: expected("internal", cases: [
+                "case `case`",
+                "case sf31Calendar = \"31.calendar\""
+            ]),
+            macros: testMacros)
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func expected(_ accessLevel: String, cases customCases: [String]? = nil) -> String {
+        let defaultCases: [String] = [
+            "case star",
+            "case starFill = \"star.fill\"",
+            "case starSquareOnSquare = \"star.square.on.square\"",
+            "case `case`"
+        ]
+        let cases = customCases ?? defaultCases
         let enumAccess: String = accessLevel == "internal" ? "" : "\(accessLevel) "
         let propertyAccess: String = accessLevel == "public" ? "\(accessLevel) " : ""
         return """
             \(enumAccess)enum SFSymbol: String {
-                case star
-                case starFill = "star.fill"
-                case starSquareOnSquare = "star.square.on.square"
-                case `case`
+                \(cases.joined(separator: "\n    "))
 
                 \(propertyAccess)var name: String {
                     self.rawValue
